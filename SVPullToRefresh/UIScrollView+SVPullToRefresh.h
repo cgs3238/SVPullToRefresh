@@ -47,6 +47,7 @@ typedef NS_ENUM(NSUInteger, SVPullToRefreshState) {
 @property (nonatomic, readwrite) UIActivityIndicatorViewStyle activityIndicatorViewStyle;
 
 @property (nonatomic, readonly) SVPullToRefreshState state;
+@property (nonatomic, readonly) CGFloat triggingProgress;
 @property (nonatomic, readonly) SVPullToRefreshPosition position;
 
 - (void)setTitle:(NSString *)title forState:(SVPullToRefreshState)state;

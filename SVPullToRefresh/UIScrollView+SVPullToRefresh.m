@@ -32,6 +32,7 @@ static CGFloat const SVPullToRefreshViewHeight = 60;
 @property (nonatomic, strong, readwrite) UILabel *titleLabel;
 @property (nonatomic, strong, readwrite) UILabel *subtitleLabel;
 @property (nonatomic, readwrite) SVPullToRefreshState state;
+@property (nonatomic, readwrite) CGFloat triggingProgress;
 @property (nonatomic, readwrite) SVPullToRefreshPosition position;
 
 @property (nonatomic, strong) NSMutableArray *titles;
@@ -131,6 +132,8 @@ static char UIScrollViewPullToRefreshView;
             [self addObserver:self.pullToRefreshView forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
             [self addObserver:self.pullToRefreshView forKeyPath:@"contentSize" options:NSKeyValueObservingOptionNew context:nil];
             [self addObserver:self.pullToRefreshView forKeyPath:@"frame" options:NSKeyValueObservingOptionNew context:nil];
+            self.pullToRefreshView.originalTopInset = self.contentInset.top;
+            self.pullToRefreshView.originalBottomInset = self.contentInset.bottom;
             self.pullToRefreshView.isObserving = YES;
             
             CGFloat yOrigin = 0;
@@ -280,16 +283,14 @@ static char UIScrollViewPullToRefreshView;
         NSString *subtitle = [self.subtitles objectAtIndex:self.state];
         self.subtitleLabel.text = subtitle.length > 0 ? subtitle : nil;
         
+        NSMutableParagraphStyle *paraStyleTitle = [[NSMutableParagraphStyle alloc] init];
+        [paraStyleTitle setLineBreakMode: self.titleLabel.lineBreakMode];
+        CGSize titleSize = [self.titleLabel.text boundingRectWithSize: CGSizeMake(labelMaxWidth, self.titleLabel.font.lineHeight) options: NSStringDrawingUsesLineFragmentOrigin attributes: @{NSParagraphStyleAttributeName: paraStyleTitle,NSFontAttributeName:self.titleLabel.font} context: nil].size;
         
-        CGSize titleSize = [self.titleLabel.text sizeWithFont:self.titleLabel.font
-                                            constrainedToSize:CGSizeMake(labelMaxWidth,self.titleLabel.font.lineHeight)
-                                                lineBreakMode:self.titleLabel.lineBreakMode];
-        
-        
-        CGSize subtitleSize = [self.subtitleLabel.text sizeWithFont:self.subtitleLabel.font
-                                                  constrainedToSize:CGSizeMake(labelMaxWidth,self.subtitleLabel.font.lineHeight)
-                                                      lineBreakMode:self.subtitleLabel.lineBreakMode];
-        
+        NSMutableParagraphStyle *paraStyleSubtitle = [[NSMutableParagraphStyle alloc] init];
+        [paraStyleSubtitle setLineBreakMode: self.subtitleLabel.lineBreakMode];
+        CGSize subtitleSize = [self.subtitleLabel.text boundingRectWithSize: CGSizeMake(labelMaxWidth, self.subtitleLabel.font.lineHeight) options: NSStringDrawingUsesLineFragmentOrigin attributes: @{NSParagraphStyleAttributeName: paraStyleSubtitle,NSFontAttributeName:self.subtitleLabel.font} context: nil].size;
+
         CGFloat maxLabelWidth = MAX(titleSize.width,subtitleSize.width);
         
         CGFloat totalMaxWidth;
@@ -339,6 +340,7 @@ static char UIScrollViewPullToRefreshView;
             currentInsets.top = self.originalTopInset;
             break;
     }
+    self.triggingProgress = 0.0;
     [self setScrollViewContentInset:currentInsets];
 }
 
@@ -353,6 +355,7 @@ static char UIScrollViewPullToRefreshView;
             currentInsets.bottom = MIN(offset, self.originalBottomInset + self.bounds.size.height);
             break;
     }
+    self.triggingProgress = 1.0;
     [self setScrollViewContentInset:currentInsets];
 }
 
@@ -364,6 +367,24 @@ static char UIScrollViewPullToRefreshView;
                          self.scrollView.contentInset = contentInset;
                      }
                      completion:NULL];
+}
+
+- (void)setTriggingProgress:(CGFloat)triggingProgress
+{
+    _triggingProgress = triggingProgress;
+
+    id customView = [self.viewForState objectAtIndex:self.state];
+    BOOL hasCustomView = [customView isKindOfClass:[UIView class]];
+
+    if (!hasCustomView) {
+        if (triggingProgress > 0.99) {
+            self.alpha = 1.0;
+        } else if (triggingProgress < 0.01) {
+            self.alpha = 0.0;
+        } else {
+            self.alpha = triggingProgress;
+        }
+    }
 }
 
 #pragma mark - Observing
@@ -391,6 +412,10 @@ static char UIScrollViewPullToRefreshView;
 }
 
 - (void)scrollViewDidScroll:(CGPoint)contentOffset {
+    if (self.position == SVPullToRefreshPositionTop && contentOffset.y >= - self.scrollView.contentInset.top) {
+        return;
+    }
+
     if(self.state != SVPullToRefreshStateLoading) {
         CGFloat scrollOffsetThreshold = 0;
         switch (self.position) {
@@ -402,16 +427,26 @@ static char UIScrollViewPullToRefreshView;
                 break;
         }
         
-        if(!self.scrollView.isDragging && self.state == SVPullToRefreshStateTriggered)
+        if(!self.scrollView.isDragging && self.state == SVPullToRefreshStateTriggered) {
+            self.triggingProgress = 100.0;
             self.state = SVPullToRefreshStateLoading;
-        else if(contentOffset.y < scrollOffsetThreshold && self.scrollView.isDragging && self.state == SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionTop)
+        } else if(contentOffset.y < scrollOffsetThreshold && self.scrollView.isDragging && self.state == SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionTop) {
+            self.triggingProgress = 100.0;
             self.state = SVPullToRefreshStateTriggered;
-        else if(contentOffset.y >= scrollOffsetThreshold && self.state != SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionTop)
+        } else if(contentOffset.y >= scrollOffsetThreshold && self.state != SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionTop) {
+            self.triggingProgress = 0.0;
             self.state = SVPullToRefreshStateStopped;
-        else if(contentOffset.y > scrollOffsetThreshold && self.scrollView.isDragging && self.state == SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionBottom)
+        } else if(contentOffset.y > scrollOffsetThreshold && self.scrollView.isDragging && self.state == SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionBottom) {
+            self.triggingProgress = 100.0;
             self.state = SVPullToRefreshStateTriggered;
-        else if(contentOffset.y <= scrollOffsetThreshold && self.state != SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionBottom)
+        } else if(contentOffset.y <= scrollOffsetThreshold && self.state != SVPullToRefreshStateStopped && self.position == SVPullToRefreshPositionBottom) {
+            self.triggingProgress = 0.0;
             self.state = SVPullToRefreshStateStopped;
+        } else if (self.position == SVPullToRefreshPositionTop && contentOffset.y >= scrollOffsetThreshold) {
+            CGFloat progress = 1.0 - ( contentOffset.y - scrollOffsetThreshold ) / self.frame.size.height;
+            NSLog(@"%f", progress);
+            self.triggingProgress = progress;
+        }
     } else {
         CGFloat offset;
         UIEdgeInsets contentInset;

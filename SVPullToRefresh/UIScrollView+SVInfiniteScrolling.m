@@ -97,6 +97,7 @@ UIEdgeInsets scrollViewOriginalContentInsets;
       if (!self.infiniteScrollingView.isObserving) {
         [self addObserver:self.infiniteScrollingView forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:nil];
         [self addObserver:self.infiniteScrollingView forKeyPath:@"contentSize" options:NSKeyValueObservingOptionNew context:nil];
+        self.infiniteScrollingView.originalBottomInset = self.contentInset.bottom;
         [self.infiniteScrollingView setScrollViewContentInsetForInfiniteScrolling];
         self.infiniteScrollingView.isObserving = YES;
           
@@ -192,6 +193,10 @@ UIEdgeInsets scrollViewOriginalContentInsets;
 }
 
 - (void)scrollViewDidScroll:(CGPoint)contentOffset {
+    if (contentOffset.y <= - self.scrollView.contentInset.top) {
+        return;
+    }
+
     if(self.state != SVInfiniteScrollingStateLoading && self.enabled) {
         CGFloat scrollViewContentHeight = self.scrollView.contentSize.height;
         CGFloat scrollOffsetThreshold = scrollViewContentHeight-self.scrollView.bounds.size.height;
