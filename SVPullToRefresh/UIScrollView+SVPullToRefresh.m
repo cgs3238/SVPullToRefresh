@@ -371,7 +371,9 @@ static char UIScrollViewPullToRefreshView;
 
 - (void)setTriggingProgress:(CGFloat)triggingProgress
 {
+    [self willChangeValueForKey: @"triggingProgress"];
     _triggingProgress = triggingProgress;
+    [self didChangeValueForKey: @"triggingProgress"];
 
     id customView = [self.viewForState objectAtIndex:self.state];
     BOOL hasCustomView = [customView isKindOfClass:[UIView class]];
