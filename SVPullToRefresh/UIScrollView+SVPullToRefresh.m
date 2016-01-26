@@ -67,7 +67,7 @@ static char UIScrollViewPullToRefreshView;
 @dynamic pullToRefreshView, showsPullToRefresh;
 
 - (void)addPullToRefreshWithActionHandler:(void (^)(void))actionHandler position:(SVPullToRefreshPosition)position {
-    
+
     if(!self.pullToRefreshView) {
         CGFloat yOrigin;
         switch (position) {
@@ -84,14 +84,14 @@ static char UIScrollViewPullToRefreshView;
         view.pullToRefreshActionHandler = actionHandler;
         view.scrollView = self;
         [self addSubview:view];
-        
+
         view.originalTopInset = self.contentInset.top;
         view.originalBottomInset = self.contentInset.bottom;
         view.position = position;
         self.pullToRefreshView = view;
         self.showsPullToRefresh = YES;
     }
-    
+
 }
 
 - (void)addPullToRefreshWithActionHandler:(void (^)(void))actionHandler {
@@ -117,7 +117,7 @@ static char UIScrollViewPullToRefreshView;
 
 - (void)setShowsPullToRefresh:(BOOL)showsPullToRefresh {
     self.pullToRefreshView.hidden = !showsPullToRefresh;
-    
+
     if(!showsPullToRefresh) {
         if (self.pullToRefreshView.isObserving) {
             [self removeObserver:self.pullToRefreshView forKeyPath:@"contentOffset"];
@@ -135,7 +135,7 @@ static char UIScrollViewPullToRefreshView;
             self.pullToRefreshView.originalTopInset = self.contentInset.top;
             self.pullToRefreshView.originalBottomInset = self.contentInset.bottom;
             self.pullToRefreshView.isObserving = YES;
-            
+
             CGFloat yOrigin = 0;
             switch (self.pullToRefreshView.position) {
                 case SVPullToRefreshPositionTop:
@@ -145,7 +145,7 @@ static char UIScrollViewPullToRefreshView;
                     yOrigin = self.contentSize.height;
                     break;
             }
-            
+
             self.pullToRefreshView.frame = CGRectMake(0, yOrigin, self.bounds.size.width, SVPullToRefreshViewHeight);
         }
     }
@@ -175,24 +175,24 @@ static char UIScrollViewPullToRefreshView;
 
 - (id)initWithFrame:(CGRect)frame {
     if(self = [super initWithFrame:frame]) {
-        
+
         // default styling values
         self.activityIndicatorViewStyle = UIActivityIndicatorViewStyleGray;
         self.textColor = [UIColor darkGrayColor];
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth;
         self.state = SVPullToRefreshStateStopped;
         self.showsDateLabel = NO;
-        
+
         self.titles = [NSMutableArray arrayWithObjects:NSLocalizedString(@"Pull to refresh...",),
                              NSLocalizedString(@"Release to refresh...",),
                              NSLocalizedString(@"Loading...",),
                                 nil];
-        
+
         self.subtitles = [NSMutableArray arrayWithObjects:@"", @"", @"", @"", nil];
         self.viewForState = [NSMutableArray arrayWithObjects:@"", @"", @"", @"", nil];
         self.wasTriggeredByUser = YES;
     }
-    
+
     return self;
 }
 
@@ -213,19 +213,19 @@ static char UIScrollViewPullToRefreshView;
 }
 
 - (void)layoutSubviews {
-    
+
     for(id otherView in self.viewForState) {
         if([otherView isKindOfClass:[UIView class]])
             [otherView removeFromSuperview];
     }
-    
+
     id customView = [self.viewForState objectAtIndex:self.state];
     BOOL hasCustomView = [customView isKindOfClass:[UIView class]];
-    
+
     self.titleLabel.hidden = hasCustomView;
     self.subtitleLabel.hidden = hasCustomView;
     self.arrow.hidden = hasCustomView;
-    
+
     if(hasCustomView) {
         [self addSubview:customView];
         CGRect viewBounds = [customView bounds];
@@ -247,7 +247,7 @@ static char UIScrollViewPullToRefreshView;
                         break;
                 }
                 break;
-                
+
             case SVPullToRefreshStateTriggered:
                 switch (self.position) {
                     case SVPullToRefreshPositionTop:
@@ -258,7 +258,7 @@ static char UIScrollViewPullToRefreshView;
                         break;
                 }
                 break;
-                
+
             case SVPullToRefreshStateLoading:
                 [self.activityIndicatorView startAnimating];
                 switch (self.position) {
@@ -271,53 +271,53 @@ static char UIScrollViewPullToRefreshView;
                 }
                 break;
         }
-        
+
         CGFloat leftViewWidth = MAX(self.arrow.bounds.size.width,self.activityIndicatorView.bounds.size.width);
-        
+
         CGFloat margin = 10;
         CGFloat marginY = 2;
         CGFloat labelMaxWidth = self.bounds.size.width - margin - leftViewWidth;
-        
+
         self.titleLabel.text = [self.titles objectAtIndex:self.state];
-        
+
         NSString *subtitle = [self.subtitles objectAtIndex:self.state];
         self.subtitleLabel.text = subtitle.length > 0 ? subtitle : nil;
-        
+
         NSMutableParagraphStyle *paraStyleTitle = [[NSMutableParagraphStyle alloc] init];
         [paraStyleTitle setLineBreakMode: self.titleLabel.lineBreakMode];
         CGSize titleSize = [self.titleLabel.text boundingRectWithSize: CGSizeMake(labelMaxWidth, self.titleLabel.font.lineHeight) options: NSStringDrawingUsesLineFragmentOrigin attributes: @{NSParagraphStyleAttributeName: paraStyleTitle,NSFontAttributeName:self.titleLabel.font} context: nil].size;
-        
+
         NSMutableParagraphStyle *paraStyleSubtitle = [[NSMutableParagraphStyle alloc] init];
         [paraStyleSubtitle setLineBreakMode: self.subtitleLabel.lineBreakMode];
         CGSize subtitleSize = [self.subtitleLabel.text boundingRectWithSize: CGSizeMake(labelMaxWidth, self.subtitleLabel.font.lineHeight) options: NSStringDrawingUsesLineFragmentOrigin attributes: @{NSParagraphStyleAttributeName: paraStyleSubtitle,NSFontAttributeName:self.subtitleLabel.font} context: nil].size;
 
         CGFloat maxLabelWidth = MAX(titleSize.width,subtitleSize.width);
-        
+
         CGFloat totalMaxWidth;
         if (maxLabelWidth) {
         	totalMaxWidth = leftViewWidth + margin + maxLabelWidth;
         } else {
         	totalMaxWidth = leftViewWidth + maxLabelWidth;
         }
-        
+
         CGFloat labelX = (self.bounds.size.width / 2) - (totalMaxWidth / 2) + leftViewWidth + margin;
-        
+
         if(subtitleSize.height > 0){
             CGFloat totalHeight = titleSize.height + subtitleSize.height + marginY;
             CGFloat minY = (self.bounds.size.height / 2)  - (totalHeight / 2);
-            
+
             CGFloat titleY = minY;
             self.titleLabel.frame = CGRectIntegral(CGRectMake(labelX, titleY, titleSize.width, titleSize.height));
             self.subtitleLabel.frame = CGRectIntegral(CGRectMake(labelX, titleY + titleSize.height + marginY, subtitleSize.width, subtitleSize.height));
         }else{
             CGFloat totalHeight = titleSize.height;
             CGFloat minY = (self.bounds.size.height / 2)  - (totalHeight / 2);
-            
+
             CGFloat titleY = minY;
             self.titleLabel.frame = CGRectIntegral(CGRectMake(labelX, titleY, titleSize.width, titleSize.height));
             self.subtitleLabel.frame = CGRectIntegral(CGRectMake(labelX, titleY + titleSize.height + marginY, subtitleSize.width, subtitleSize.height));
         }
-        
+
         CGFloat arrowX = (self.bounds.size.width / 2) - (totalMaxWidth / 2) + (leftViewWidth - self.arrow.bounds.size.width) / 2;
         self.arrow.frame = CGRectMake(arrowX,
                                       (self.bounds.size.height / 2) - (self.arrow.bounds.size.height / 2),
@@ -396,7 +396,7 @@ static char UIScrollViewPullToRefreshView;
         [self scrollViewDidScroll:[[change valueForKey:NSKeyValueChangeNewKey] CGPointValue]];
     else if([keyPath isEqualToString:@"contentSize"]) {
         [self layoutSubviews];
-        
+
         CGFloat yOrigin;
         switch (self.position) {
             case SVPullToRefreshPositionTop:
@@ -428,7 +428,7 @@ static char UIScrollViewPullToRefreshView;
                 scrollOffsetThreshold = MAX(self.scrollView.contentSize.height - self.scrollView.bounds.size.height, 0.0f) + self.bounds.size.height + self.originalBottomInset;
                 break;
         }
-        
+
         if(!self.scrollView.isDragging && self.state == SVPullToRefreshStateTriggered) {
             self.triggingProgress = 100.0;
             self.state = SVPullToRefreshStateLoading;
@@ -446,7 +446,6 @@ static char UIScrollViewPullToRefreshView;
             self.state = SVPullToRefreshStateStopped;
         } else if (self.position == SVPullToRefreshPositionTop && contentOffset.y >= scrollOffsetThreshold) {
             CGFloat progress = 1.0 - ( contentOffset.y - scrollOffsetThreshold ) / self.frame.size.height;
-            NSLog(@"%f", progress);
             self.triggingProgress = progress;
         }
     } else {
@@ -558,38 +557,38 @@ static char UIScrollViewPullToRefreshView;
 - (void)setTitle:(NSString *)title forState:(SVPullToRefreshState)state {
     if(!title)
         title = @"";
-    
+
     if(state == SVPullToRefreshStateAll)
         [self.titles replaceObjectsInRange:NSMakeRange(0, 3) withObjectsFromArray:@[title, title, title]];
     else
         [self.titles replaceObjectAtIndex:state withObject:title];
-    
+
     [self setNeedsLayout];
 }
 
 - (void)setSubtitle:(NSString *)subtitle forState:(SVPullToRefreshState)state {
     if(!subtitle)
         subtitle = @"";
-    
+
     if(state == SVPullToRefreshStateAll)
         [self.subtitles replaceObjectsInRange:NSMakeRange(0, 3) withObjectsFromArray:@[subtitle, subtitle, subtitle]];
     else
         [self.subtitles replaceObjectAtIndex:state withObject:subtitle];
-    
+
     [self setNeedsLayout];
 }
 
 - (void)setCustomView:(UIView *)view forState:(SVPullToRefreshState)state {
     id viewPlaceholder = view;
-    
+
     if(!viewPlaceholder)
         viewPlaceholder = @"";
-    
+
     if(state == SVPullToRefreshStateAll)
         [self.viewForState replaceObjectsInRange:NSMakeRange(0, 3) withObjectsFromArray:@[viewPlaceholder, viewPlaceholder, viewPlaceholder]];
     else
         [self.viewForState replaceObjectAtIndex:state withObject:viewPlaceholder];
-    
+
     [self setNeedsLayout];
 }
 
@@ -626,17 +625,17 @@ static char UIScrollViewPullToRefreshView;
 - (void)startAnimating{
     switch (self.position) {
         case SVPullToRefreshPositionTop:
-            
+
             if(fequalzero(self.scrollView.contentOffset.y)) {
                 [self.scrollView setContentOffset:CGPointMake(self.scrollView.contentOffset.x, -self.frame.size.height) animated:YES];
                 self.wasTriggeredByUser = NO;
             }
             else
                 self.wasTriggeredByUser = YES;
-            
+
             break;
         case SVPullToRefreshPositionBottom:
-            
+
             if((fequalzero(self.scrollView.contentOffset.y) && self.scrollView.contentSize.height < self.scrollView.bounds.size.height)
                || fequal(self.scrollView.contentOffset.y, self.scrollView.contentSize.height - self.scrollView.bounds.size.height)) {
                 [self.scrollView setContentOffset:(CGPoint){.y = MAX(self.scrollView.contentSize.height - self.scrollView.bounds.size.height, 0.0f) + self.frame.size.height} animated:YES];
@@ -644,16 +643,16 @@ static char UIScrollViewPullToRefreshView;
             }
             else
                 self.wasTriggeredByUser = YES;
-            
+
             break;
     }
-    
+
     self.state = SVPullToRefreshStateLoading;
 }
 
 - (void)stopAnimating {
     self.state = SVPullToRefreshStateStopped;
-    
+
     switch (self.position) {
         case SVPullToRefreshPositionTop:
             if(!self.wasTriggeredByUser)
@@ -667,31 +666,31 @@ static char UIScrollViewPullToRefreshView;
 }
 
 - (void)setState:(SVPullToRefreshState)newState {
-    
+
     if(_state == newState)
         return;
-    
+
     SVPullToRefreshState previousState = _state;
     _state = newState;
-    
+
     [self setNeedsLayout];
     [self layoutIfNeeded];
-    
+
     switch (newState) {
         case SVPullToRefreshStateAll:
         case SVPullToRefreshStateStopped:
             [self resetScrollViewContentInset];
             break;
-            
+
         case SVPullToRefreshStateTriggered:
             break;
-            
+
         case SVPullToRefreshStateLoading:
             [self setScrollViewContentInsetForLoading];
-            
+
             if(previousState == SVPullToRefreshStateTriggered && pullToRefreshActionHandler)
                 pullToRefreshActionHandler();
-            
+
             break;
     }
 }
@@ -719,7 +718,7 @@ static char UIScrollViewPullToRefreshView;
 
 - (void)drawRect:(CGRect)rect {
 	CGContextRef c = UIGraphicsGetCurrentContext();
-	
+
 	// the rects above the arrow
 	CGContextAddRect(c, CGRectMake(5, 0, 12, 4)); // to-do: use dynamic points
 	CGContextAddRect(c, CGRectMake(5, 6, 12, 4)); // currently fixed size: 22 x 48pt
@@ -727,21 +726,21 @@ static char UIScrollViewPullToRefreshView;
 	CGContextAddRect(c, CGRectMake(5, 18, 12, 4));
 	CGContextAddRect(c, CGRectMake(5, 24, 12, 4));
 	CGContextAddRect(c, CGRectMake(5, 30, 12, 4));
-	
+
 	// the arrow
 	CGContextMoveToPoint(c, 0, 34);
 	CGContextAddLineToPoint(c, 11, 48);
 	CGContextAddLineToPoint(c, 22, 34);
 	CGContextAddLineToPoint(c, 0, 34);
 	CGContextClosePath(c);
-	
+
 	CGContextSaveGState(c);
 	CGContextClip(c);
-	
+
 	// Gradient Declaration
 	CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
 	CGFloat alphaGradientLocations[] = {0, 0.8f};
-    
+
 	CGGradientRef alphaGradient = nil;
     if([[[UIDevice currentDevice] systemVersion]floatValue] >= 5){
         NSArray* alphaGradientColors = [NSArray arrayWithObjects:
@@ -771,12 +770,12 @@ static char UIScrollViewPullToRefreshView;
         colors[7] = 1;
         alphaGradient = CGGradientCreateWithColorComponents(colorSpace,colors,alphaGradientLocations,2);
     }
-	
-	
+
+
 	CGContextDrawLinearGradient(c, alphaGradient, CGPointZero, CGPointMake(0, rect.size.height), 0);
-    
+
 	CGContextRestoreGState(c);
-	
+
 	CGGradientRelease(alphaGradient);
 	CGColorSpaceRelease(colorSpace);
 }
